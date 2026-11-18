@@ -1,0 +1,51 @@
+URL Shortener API
+
+POST /api/urls
+Content-Type: application/json
+
+{
+	"url": "https://example.com/very/long/url",
+	"customAlias": "my-link",
+	"expiresAt": "2027-12-31T23:59:59Z"
+}
+
+Request fields:
+- url: Required destination URL.
+- customAlias: Optional string used as the short URL code. If omitted, a code is generated.
+- Aliases are case-sensitive and must contain 3-64 letters, digits, underscores, or hyphens.
+- expiresAt: Optional ISO 8601 timestamp with a timezone. If omitted, the short URL does not expire.
+- expiresAt must be in the future. Responses use UTC; no expiration is represented as null.
+- url must be an absolute HTTP(S) URL without credentials or unescaped whitespace.
+
+Response: 201 Created
+{
+	"shortUrl": "https://short.example/my-link",
+	"code": "my-link",
+	"url": "https://example.com/very/long/url",
+	"expiresAt": "2027-12-31T23:59:59Z"
+}
+
+Errors: 400 for invalid input, 409 for an alias already in use.
+Expired aliases remain reserved and cannot be reused.
+
+GET /api/urls/{code}
+GET /{code} (public short URL; same behavior)
+
+Response: 302 Found
+Location: https://example.com/very/long/url
+Cache-Control: no-store
+
+Redirects the browser to the original URL with no JSON response body.
+Expired codes return 410 Gone without a Location header.
+Unknown codes return 404 Not Found without a Location header.
+
+Error responses use this shape:
+{
+	"error": {
+		"code": "URL_NOT_FOUND",
+		"message": "Short URL was not found"
+	}
+}
+
+GET /health/live: 200 when the HTTP process is running.
+GET /health/ready: 200 when the URL table is accessible, otherwise 503.
